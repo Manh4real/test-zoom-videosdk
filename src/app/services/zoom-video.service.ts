@@ -16,7 +16,7 @@ export class ZoomVideoService {
 
   offVideo$ = new BehaviorSubject<boolean>(false);
   offMic$ = new BehaviorSubject<boolean | null>(null);
-  offSharescreen$ = new BehaviorSubject<boolean>(false);
+  offSharescreen$ = new BehaviorSubject<boolean>(true);
 
   readonly zoomInfo = {
     role: 1,

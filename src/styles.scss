@@ -2,3 +2,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+video-player {
+  width: 300px;
+  height: auto;
+  aspect-ratio: 16/9;
+}
+
+video-player[node-id] {
+  position: relative;
+}
+
+video-player[node-id]::after {
+  content: attr(node-id);
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+
+  font-size: 1rem;
+  font-weight: bold;
+  color: red;
+}
+
+.sharescreen-video,
+.sharescreen-canvas {
+  width: min(calc(100vw - 20px), 600px);
+  margin-inline: auto;
+}
