@@ -6,8 +6,7 @@ import {
   inject,
 } from '@angular/core';
 import { ZoomVideoService } from '../../services/zoom-video.service';
-import { VideoPlayer, VideoQuality } from '@zoom/videosdk';
-import { combineLatest, combineLatestWith, skip } from 'rxjs';
+import { combineLatestWith } from 'rxjs';
 
 @Component({
   selector: 'app-camera',
@@ -26,25 +25,11 @@ export class CameraComponent implements OnInit {
   ngOnInit(): void {
     this.zoomVideoService.mediaStream$.subscribe(async (mediaStream) => {
       if (!mediaStream) return;
-      // await mediaStream.startVideo({
-      //   videoElement: document.getElementById('camera-video') as any,
-      //   captureWidth: 320,
-      //   captureHeight: 180,
-      // });
+
       await mediaStream.startAudio();
 
       this.zoomVideoService.offMic$.next(true);
       this.zoomVideoService.offVideo$.next(false);
-
-      // mediaStream.renderVideo(
-      //   document.getElementById('camera-canvas') as any,
-      //   this.zoomVideoService.client.getCurrentUserInfo().userId,
-      //   320,
-      //   180,
-      //   0,
-      //   0,
-      //   VideoQuality.Video_720P
-      // );
     });
 
     this.zoomVideoService.offVideo$
@@ -56,11 +41,7 @@ export class CameraComponent implements OnInit {
           await mediaStream.stopVideo();
 
           this.cameraStatus = 'disabled';
-          // mediaStream.detachVideo(
-          //   this.zoomVideoService.client?.getCurrentUserInfo().userId || 0
-          // );
         } else {
-          // const currentUserInfo = client.getCurrentUserInfo()
           if (!this.cameraElement) return;
           const videoElement = this.cameraElement.nativeElement;
 

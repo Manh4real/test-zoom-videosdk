@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { ZoomVideoService } from '../../services/zoom-video.service';
 import { combineLatestWith, skip } from 'rxjs';
-import ZoomVideo, {
+import {
   VideoPlayer,
   VideoPlayerContainer,
   VideoQuality,
@@ -62,9 +62,6 @@ export class ParticipantsComponent implements OnInit {
             this.queryVideoElement('0')?.remove();
           }
         });
-
-        // reset video elements before rerendering
-        // this.listElement?.nativeElement.replaceChildren();
 
         client.getAllUser().forEach((user) => {
           if (user.userId === client.getCurrentUserInfo().userId) return;
@@ -131,59 +128,6 @@ export class ParticipantsComponent implements OnInit {
 
         client.on('user-updated', (data) => {
           console.log('user-updated', data);
-          // this.listElement?.nativeElement.replaceChildren();
-
-          // Promise.allSettled(
-          //   data.map(async (p) => {
-          //     if (p.userId === client.getCurrentUserInfo().userId) return null;
-          //     // if (!p.bVideoOn) return;
-
-          //     // mediaStream.detachVideo(p.userId);
-
-          //     try {
-          //       const videoElement = await mediaStream.attachVideo(
-          //         p.userId,
-          //         VideoQuality.Video_1080P
-          //       );
-
-          //       return videoElement;
-
-          //       // // const video = document.createElement('canvas');
-          //       // const video = document.createElement('video');
-
-          //       // video.width = 16 * 1.5 * 10;
-          //       // video.height = 9 * 1.5 * 10;
-
-          //       // video.id = `participant-${p.userId}`;
-          //       // video.classList.add('participant');
-
-          //       // ZoomVideo.createLocalVideoTrack().start(video, {
-          //       //   imageUrl: 'blur',
-          //       // });
-
-          //       // return video;
-          //     } catch (err) {}
-
-          //     return null;
-          //   })
-          // ).then((results) => {
-          //   results.forEach((result) => {
-          //     if (result.status === 'fulfilled' && result.value) {
-          //       const video = result.value as VideoPlayer;
-
-          //       (result.value as any)?.classList.add(
-          //         'bg-gray-100',
-          //         'rounded-sm'
-          //       );
-          //       video.style.width = 16 * 1.5 * 10 + 'px';
-          //       video.style.height = 9 * 1.5 * 10 + 'px';
-
-          //       this.listElement?.nativeElement.appendChild(
-          //         result.value as HTMLElement
-          //       );
-          //     }
-          //   });
-          // });
         });
       });
   }

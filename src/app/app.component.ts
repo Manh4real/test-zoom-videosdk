@@ -1,16 +1,8 @@
-import {
-  CUSTOM_ELEMENTS_SCHEMA,
-  Component,
-  OnDestroy,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CameraComponent } from './components/camera/camera.component';
 import { ParticipantsComponent } from './components/participants/participants.component';
 import { ZoomVideoService } from './services/zoom-video.service';
-import { HttpClientModule } from '@angular/common/http';
-import ZoomVideo from '@zoom/videosdk';
 
 @Component({
   selector: 'app-root',

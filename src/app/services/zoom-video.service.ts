@@ -1,7 +1,6 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import ZoomVideo, { Stream, VideoClient } from '@zoom/videosdk';
-import { BehaviorSubject, lastValueFrom } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -23,10 +22,7 @@ export class ZoomVideoService {
     role: 1,
     sessionName: 'testZoom123',
     userIdentity: 'Manh Nguyen' + Math.floor(Date.now()),
-    // sessionKey: 'testZoom123testZoom123',
   };
-
-  private readonly httpClient = inject(HttpClient);
 
   constructor() {}
 
