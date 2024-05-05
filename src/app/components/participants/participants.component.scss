@@ -1,0 +1,22 @@
+:host ::ng-deep {
+  [node-id] {
+    position: relative;
+  }
+
+  [node-id]::after {
+    content: attr(node-id);
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+
+    font-size: 1rem;
+    font-weight: bold;
+    color: red;
+  }
+
+  video-player {
+    width: 300px;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+}
