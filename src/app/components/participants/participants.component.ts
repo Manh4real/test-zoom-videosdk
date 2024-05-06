@@ -29,7 +29,7 @@ export class ParticipantsComponent implements OnInit {
   @ViewChild('list') listElement?: ElementRef<VideoPlayerContainer>;
 
   queryVideoElement(nodeId: string) {
-    return document.querySelector(`[node-id='${nodeId}']`);
+    return document.querySelector(`[node-id='${nodeId}']`)?.parentElement;
   }
 
   ngOnInit(): void {
@@ -53,8 +53,9 @@ export class ParticipantsComponent implements OnInit {
               VideoQuality.Video_90P
             );
 
-            this.listElement?.nativeElement.appendChild(
-              videoPlayer as HTMLElement
+            this.appendToParticipantList(
+              videoPlayer as VideoPlayer,
+              data.userId
             );
           } else {
             const videoPlayer = await mediaStream.detachVideo(data.userId);
@@ -70,8 +71,9 @@ export class ParticipantsComponent implements OnInit {
             mediaStream
               .attachVideo(user.userId, VideoQuality.Video_1080P)
               .then((userVideo) => {
-                this.listElement?.nativeElement.appendChild(
-                  userVideo as HTMLElement
+                this.appendToParticipantList(
+                  userVideo as VideoPlayer,
+                  user.userId
                 );
               });
           }
@@ -96,17 +98,17 @@ export class ParticipantsComponent implements OnInit {
                 'data-participant',
                 String(p.userId)
               );
-              return userVideo;
+              return { userVideo, userId: p.userId };
             })
           );
 
           results.forEach((result) => {
             if (result.status === 'fulfilled' && result.value) {
-              const video = result.value as VideoPlayer;
+              const video = result.value.userVideo as VideoPlayer;
 
               video.classList.add('bg-gray-100', 'rounded-sm');
 
-              this.listElement?.nativeElement.appendChild(video as HTMLElement);
+              this.appendToParticipantList(video, result.value.userId);
             }
           });
         });
@@ -130,5 +132,23 @@ export class ParticipantsComponent implements OnInit {
           console.log('user-updated', data);
         });
       });
+  }
+
+  appendToParticipantList(video: VideoPlayer, userId: number): void {
+    const div = document.createElement('div');
+    div.className = 'flex flex-col gap-2';
+
+    const button = document.createElement('button');
+    button.textContent = 'Remove';
+    button.className =
+      'focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5';
+    button.onclick = () => {
+      this.zoomVideoService.client?.removeUser(userId).then(() => {});
+    };
+
+    div.appendChild(video);
+    div.appendChild(button);
+
+    this.listElement?.nativeElement.appendChild(div);
   }
 }

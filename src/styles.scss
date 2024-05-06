@@ -26,6 +26,7 @@ video-player[node-id]::after {
 
 .sharescreen-video,
 .sharescreen-canvas {
+  position: relative;
   width: min(calc(100vw - 20px), 600px);
   margin-inline: auto;
 }

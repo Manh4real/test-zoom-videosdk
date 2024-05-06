@@ -11,9 +11,14 @@ import { RouterOutlet } from '@angular/router';
 import { CameraComponent } from './components/camera/camera.component';
 import { ParticipantsComponent } from './components/participants/participants.component';
 import { ZoomVideoService } from './services/zoom-video.service';
-import { combineLatestWith, skip } from 'rxjs';
+import { combineLatestWith, skip, take } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import { ShareStatus, VideoQuality } from '@zoom/videosdk';
+import {
+  ConnectionState,
+  ShareStatus,
+  Stream,
+  VideoQuality,
+} from '@zoom/videosdk';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +33,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   @ViewChild('sharescreenContainer')
   sharescreenContainerElement?: ElementRef<HTMLVideoElement>;
+
+  connectionState?: ConnectionState;
+  get isRemoved(): boolean {
+    return this.connectionState === ConnectionState.Closed;
+  }
 
   get videoIsOff(): boolean {
     return this.zoomVideoService.offVideo$.getValue();
@@ -77,26 +87,49 @@ export class AppComponent implements OnInit, OnDestroy {
         });
 
         client.on('active-share-change', async (payload) => {
-          console.log('active-share-change', payload);
+          console.log('active-share-change', payload, Boolean(mediaStream));
 
-          if (!mediaStream) return;
+          const renderSharescreenView = async (mediaStream: typeof Stream) => {
+            if (payload.state === 'Active') {
+              this.sharescreenContainerElement?.nativeElement.replaceChildren();
 
-          if (payload.state === 'Active') {
-            this.sharescreenContainerElement?.nativeElement.replaceChildren();
+              const sharescreenVideo = this.createSharescreenCanvas(
+                String(payload.userId)
+              );
 
-            const sharescreenVideo = this.createSharescreenCanvas(
-              String(payload.userId)
+              await mediaStream.startShareView(
+                sharescreenVideo,
+                payload.userId
+              );
+
+              this.appendToSharescreenContainer(
+                sharescreenVideo,
+                payload.userId
+              );
+            } else {
+              await mediaStream.stopShareView();
+              this.sharescreenContainerElement?.nativeElement.replaceChildren();
+            }
+          };
+
+          if (!mediaStream) {
+            // In case 'active-share-change' event handler run before media stream is initialized
+            const tempSubscriber = this.zoomVideoService.mediaStream$.subscribe(
+              async (mediaStream) => {
+                console.log(
+                  "In case 'active-share-change' event handler run before media stream is initialized"
+                );
+                if (!mediaStream) return;
+
+                renderSharescreenView(mediaStream);
+                tempSubscriber.unsubscribe();
+              }
             );
 
-            await mediaStream.startShareView(sharescreenVideo, payload.userId);
-
-            this.sharescreenContainerElement?.nativeElement.appendChild(
-              sharescreenVideo as HTMLElement
-            );
-          } else {
-            await mediaStream.stopShareView();
-            this.sharescreenContainerElement?.nativeElement.replaceChildren();
+            return;
           }
+
+          renderSharescreenView(mediaStream);
         });
 
         client.on('share-can-see-screen', (payload: any) => {
@@ -111,6 +144,10 @@ export class AppComponent implements OnInit, OnDestroy {
               this.zoomVideoService.offSharescreen$.next(true);
             }
           });
+        });
+
+        client.on('connection-change', (payload) => {
+          this.connectionState = payload.state;
         });
       });
   }
@@ -131,6 +168,31 @@ export class AppComponent implements OnInit, OnDestroy {
     canvas.setAttribute('data-sharecreen-userid', userId);
 
     return canvas;
+  }
+
+  appendToSharescreenContainer(
+    sharescreenVideo: HTMLElement,
+    userId: number
+  ): void {
+    const div = document.createElement('div');
+    div.className = 'relative';
+
+    const p = document.createElement('p');
+
+    const currentUserId =
+      this.zoomVideoService.client?.getCurrentUserInfo().userId;
+
+    // May replace with username
+    p.textContent = `${
+      userId === currentUserId ? 'You are' : `${userId} is`
+    } sharing`;
+    p.className =
+      'absolute bottom-0 left-0 bg-gray-400 font-medium text-white py-2 px-4';
+
+    div.appendChild(sharescreenVideo);
+    div.appendChild(p);
+
+    this.sharescreenContainerElement?.nativeElement.appendChild(div);
   }
 
   onToggleVideoClick(): void {
@@ -169,12 +231,10 @@ export class AppComponent implements OnInit, OnDestroy {
       }
 
       try {
-        const sharescreenVideo = this.createSharescreenVideo(
-          String(this.zoomVideoService.client?.getCurrentUserInfo().userId)
-        );
-        this.sharescreenContainerElement.nativeElement.appendChild(
-          sharescreenVideo
-        );
+        const userId =
+          this.zoomVideoService.client?.getCurrentUserInfo().userId;
+        const sharescreenVideo = this.createSharescreenVideo(String(userId));
+        this.appendToSharescreenContainer(sharescreenVideo, userId || 0);
 
         await mediaStream.startShareScreen(sharescreenVideo, {
           controls: {},
