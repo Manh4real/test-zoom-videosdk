@@ -249,4 +249,17 @@ export class AppComponent implements OnInit, OnDestroy {
       this.zoomVideoService.offSharescreen$.next(flag);
     }
   }
+
+  async onLeaveCall(): Promise<void> {
+    this.zoomVideoService.client?.leave();
+  }
+
+  async onEndCall(): Promise<void> {
+    await this.zoomVideoService.client?.leave(true);
+    ZoomVideo.destroyClient();
+  }
+
+  onRefreshClick(): void {
+    window.location.reload();
+  }
 }
