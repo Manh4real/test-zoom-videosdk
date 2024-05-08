@@ -9,6 +9,7 @@ import {
 import { ZoomVideoService } from '../../services/zoom-video.service';
 import { combineLatestWith, skip } from 'rxjs';
 import {
+  ParticipantPropertiesPayload,
   VideoPlayer,
   VideoPlayerContainer,
   VideoQuality,
@@ -27,6 +28,8 @@ export class ParticipantsComponent implements OnInit {
   private readonly zoomVideoService = inject(ZoomVideoService);
 
   @ViewChild('list') listElement?: ElementRef<VideoPlayerContainer>;
+  @ViewChild('notifContainer')
+  notifContainerElement?: ElementRef<HTMLDivElement>;
 
   queryVideoElement(nodeId: string) {
     return document.querySelector(`[node-id='${nodeId}']`)?.parentElement;
@@ -121,6 +124,8 @@ export class ParticipantsComponent implements OnInit {
               this.queryVideoElement('0')?.remove();
             });
           });
+
+          this.showUserLeftNotif(payload);
         });
 
         client.on('connection-change', (payload) => {
@@ -150,5 +155,19 @@ export class ParticipantsComponent implements OnInit {
     div.appendChild(button);
 
     this.listElement?.nativeElement.appendChild(div);
+  }
+
+  showUserLeftNotif(list: ParticipantPropertiesPayload[]) {
+    const div = document.createElement('div');
+    div.className =
+      'flex gap-2 py-2 px-4 rounded font-medium bg-red-700 text-white';
+    div.textContent =
+      list.map((user) => user.userIdentity || user.userId).join(', ') +
+      (list.length <= 1 ? ' has' : ' have') +
+      ' left the call';
+
+    this.notifContainerElement?.nativeElement.appendChild(div);
+
+    setTimeout(() => div.remove(), 5000);
   }
 }

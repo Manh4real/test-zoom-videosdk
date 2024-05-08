@@ -13,11 +13,10 @@ import { ParticipantsComponent } from './components/participants/participants.co
 import { ZoomVideoService } from './services/zoom-video.service';
 import { combineLatestWith, skip, take } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import {
+import ZoomVideo, {
   ConnectionState,
   ShareStatus,
   Stream,
-  VideoQuality,
 } from '@zoom/videosdk';
 
 @Component({
@@ -58,9 +57,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor() {}
 
-  ngOnDestroy(): void {
-    this.zoomVideoService.client?.leave();
-    // ZoomVideo.destroyClient();
+  async ngOnDestroy(): Promise<void> {
+    if (!this.zoomVideoService.client) return;
+
+    await this.zoomVideoService.client.leave();
+
+    if (this.zoomVideoService.client.getAllUser().length === 0) {
+      ZoomVideo.destroyClient();
+    }
   }
 
   ngOnInit(): void {
@@ -73,17 +77,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
         client.on('share-content-change', async (payload) => {
           console.log('share-content-change', payload);
-
-          // if (!mediaStream) return;
-
-          // const sharescreenVideo = await mediaStream.attachVideo(
-          //   payload.userId,
-          //   VideoQuality.Video_720P
-          // );
-
-          // this.sharescreenContainerElement?.nativeElement.appendChild(
-          //   sharescreenVideo as HTMLElement
-          // );
         });
 
         client.on('active-share-change', async (payload) => {
@@ -114,8 +107,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
           if (!mediaStream) {
             // In case 'active-share-change' event handler run before media stream is initialized
-            const tempSubscriber = this.zoomVideoService.mediaStream$.subscribe(
-              async (mediaStream) => {
+            const tempSubscriber = this.zoomVideoService.mediaStream$
+              .asObservable()
+              .pipe(skip(1))
+              .subscribe(async (mediaStream) => {
                 console.log(
                   "In case 'active-share-change' event handler run before media stream is initialized"
                 );
@@ -123,8 +118,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
                 renderSharescreenView(mediaStream);
                 tempSubscriber.unsubscribe();
-              }
-            );
+              });
 
             return;
           }
@@ -148,6 +142,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
         client.on('connection-change', (payload) => {
           this.connectionState = payload.state;
+
+          if (this.connectionState === ConnectionState.Closed) {
+            // Remove all values used by zoom videoSDK
+            localStorage.clear();
+          }
         });
       });
   }
@@ -187,7 +186,7 @@ export class AppComponent implements OnInit, OnDestroy {
       userId === currentUserId ? 'You are' : `${userId} is`
     } sharing`;
     p.className =
-      'absolute bottom-0 left-0 bg-gray-400 font-medium text-white py-2 px-4';
+      'absolute bottom-0 left-0 bg-gray-900 opacity-80 font-medium text-white py-2 px-4';
 
     div.appendChild(sharescreenVideo);
     div.appendChild(p);
