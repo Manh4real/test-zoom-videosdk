@@ -4,4 +4,7 @@
     id="camera-video"
     class="bg-gray-100 shadow-md shadow-gray-300"
   ></video>
+  <p class="mt-1 font-bold">
+    {{ (zoomVideoService.client$ | async)?.getCurrentUserInfo()?.displayName }}
+  </p>
 </div>

@@ -6,7 +6,6 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
-import { ZoomVideoService } from '../../services/zoom-video.service';
 import { combineLatestWith, skip } from 'rxjs';
 import {
   ParticipantPropertiesPayload,
@@ -14,6 +13,8 @@ import {
   VideoPlayerContainer,
   VideoQuality,
 } from '@zoom/videosdk';
+
+import { ZoomVideoService } from '../../services/zoom-video.service';
 
 @Component({
   selector: 'app-participants',
@@ -30,6 +31,7 @@ export class ParticipantsComponent implements OnInit {
   @ViewChild('list') listElement?: ElementRef<VideoPlayerContainer>;
   @ViewChild('notifContainer')
   notifContainerElement?: ElementRef<HTMLDivElement>;
+  STOPPED_MEDIA_NODE_ID = '0';
 
   queryVideoElement(nodeId: string) {
     return document.querySelector(`[node-id='${nodeId}']`)?.parentElement;
@@ -51,19 +53,21 @@ export class ParticipantsComponent implements OnInit {
           console.log('peer-video-state-change', data);
 
           if (data.action === 'Start') {
+            const user = _client
+              ?.getAllUser()
+              .find((u) => u.userId === data.userId);
+
+            if (!user) return;
+
             const videoPlayer = await mediaStream.attachVideo(
               data.userId,
               VideoQuality.Video_90P
             );
 
-            this.appendToParticipantList(
-              videoPlayer as VideoPlayer,
-              data.userId
-            );
+            this.appendToParticipantList(videoPlayer as VideoPlayer, user);
           } else {
             const videoPlayer = await mediaStream.detachVideo(data.userId);
-
-            this.queryVideoElement('0')?.remove();
+            this.queryVideoElement(this.STOPPED_MEDIA_NODE_ID)?.remove();
           }
         });
 
@@ -74,10 +78,7 @@ export class ParticipantsComponent implements OnInit {
             mediaStream
               .attachVideo(user.userId, VideoQuality.Video_1080P)
               .then((userVideo) => {
-                this.appendToParticipantList(
-                  userVideo as VideoPlayer,
-                  user.userId
-                );
+                this.appendToParticipantList(userVideo as VideoPlayer, user);
               });
           }
         });
@@ -101,7 +102,7 @@ export class ParticipantsComponent implements OnInit {
                 'data-participant',
                 String(p.userId)
               );
-              return { userVideo, userId: p.userId };
+              return { userVideo, userId: p.userId, user: p };
             })
           );
 
@@ -109,9 +110,7 @@ export class ParticipantsComponent implements OnInit {
             if (result.status === 'fulfilled' && result.value) {
               const video = result.value.userVideo as VideoPlayer;
 
-              video.classList.add('bg-gray-100', 'rounded-sm');
-
-              this.appendToParticipantList(video, result.value.userId);
+              this.appendToParticipantList(video, result.value.user);
             }
           });
         });
@@ -121,7 +120,7 @@ export class ParticipantsComponent implements OnInit {
           // user left
           payload.forEach((p) => {
             mediaStream.detachVideo(p.userId).then((userVideo) => {
-              this.queryVideoElement('0')?.remove();
+              this.queryVideoElement(this.STOPPED_MEDIA_NODE_ID)?.remove();
             });
           });
 
@@ -139,34 +138,17 @@ export class ParticipantsComponent implements OnInit {
       });
   }
 
-  appendToParticipantList(video: VideoPlayer, userId: number): void {
-    const div = document.createElement('div');
-    div.className = 'flex flex-col gap-2';
-
-    const button = document.createElement('button');
-    button.textContent = 'Remove';
-    button.className =
-      'focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5';
-    button.onclick = () => {
-      this.zoomVideoService.client?.removeUser(userId).then(() => {});
-    };
-
-    div.appendChild(video);
-    div.appendChild(button);
+  appendToParticipantList(
+    video: VideoPlayer,
+    user: ParticipantPropertiesPayload
+  ): void {
+    const div = this.zoomVideoService.createParticipantElement(video, user);
 
     this.listElement?.nativeElement.appendChild(div);
   }
 
   showUserLeftNotif(list: ParticipantPropertiesPayload[]) {
-    const div = document.createElement('div');
-    div.className =
-      'flex gap-2 py-2 px-4 rounded font-medium bg-red-700 text-white';
-    div.textContent =
-      list.map((user) => user.userIdentity || user.userId).join(', ') +
-      (list.length <= 1 ? ' has' : ' have') +
-      ' left the call';
-
-    this.notifContainerElement?.nativeElement.appendChild(div);
+    const div = this.zoomVideoService.createNotifElement(list);
 
     setTimeout(() => div.remove(), 5000);
   }

@@ -28,7 +28,7 @@ import ZoomVideo, {
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private readonly zoomVideoService = inject(ZoomVideoService);
+  protected readonly zoomVideoService = inject(ZoomVideoService);
 
   @ViewChild('sharescreenContainer')
   sharescreenContainerElement?: ElementRef<HTMLVideoElement>;
@@ -86,18 +86,24 @@ export class AppComponent implements OnInit, OnDestroy {
             if (payload.state === 'Active') {
               this.sharescreenContainerElement?.nativeElement.replaceChildren();
 
-              const sharescreenVideo = this.createSharescreenCanvas(
-                String(payload.userId)
-              );
+              const sharescreenVideo =
+                this.zoomVideoService.createSharescreenCanvas(
+                  String(payload.userId)
+                );
 
               await mediaStream.startShareView(
                 sharescreenVideo,
                 payload.userId
               );
 
-              this.appendToSharescreenContainer(
-                sharescreenVideo,
-                payload.userId
+              const container =
+                this.zoomVideoService.createSharescreenContainer(
+                  sharescreenVideo,
+                  payload.userId
+                );
+
+              this.sharescreenContainerElement?.nativeElement.appendChild(
+                container
               );
             } else {
               await mediaStream.stopShareView();
@@ -151,49 +157,6 @@ export class AppComponent implements OnInit, OnDestroy {
       });
   }
 
-  title = 'angular-zoom-videosdk';
-
-  createSharescreenVideo(userId: string) {
-    const video = document.createElement('video');
-    video.className = 'sharescreen-video | mt-4 border-4 border-green-400';
-    video.setAttribute('data-sharecreen-userid', userId);
-
-    return video;
-  }
-
-  createSharescreenCanvas(userId: string) {
-    const canvas = document.createElement('canvas');
-    canvas.className = 'sharescreen-canvas | mt-4 border-4 border-green-400';
-    canvas.setAttribute('data-sharecreen-userid', userId);
-
-    return canvas;
-  }
-
-  appendToSharescreenContainer(
-    sharescreenVideo: HTMLElement,
-    userId: number
-  ): void {
-    const div = document.createElement('div');
-    div.className = 'relative';
-
-    const p = document.createElement('p');
-
-    const currentUserId =
-      this.zoomVideoService.client?.getCurrentUserInfo().userId;
-
-    // May replace with username
-    p.textContent = `${
-      userId === currentUserId ? 'You are' : `${userId} is`
-    } sharing`;
-    p.className =
-      'absolute bottom-0 left-0 bg-gray-900 opacity-80 font-medium text-white py-2 px-4';
-
-    div.appendChild(sharescreenVideo);
-    div.appendChild(p);
-
-    this.sharescreenContainerElement?.nativeElement.appendChild(div);
-  }
-
   onToggleVideoClick(): void {
     this.zoomVideoService.offVideo$.next(
       !this.zoomVideoService.offVideo$.getValue()
@@ -232,8 +195,16 @@ export class AppComponent implements OnInit, OnDestroy {
       try {
         const userId =
           this.zoomVideoService.client?.getCurrentUserInfo().userId;
-        const sharescreenVideo = this.createSharescreenVideo(String(userId));
-        this.appendToSharescreenContainer(sharescreenVideo, userId || 0);
+        const sharescreenVideo = this.zoomVideoService.createSharescreenVideo();
+        const sharescreenContainer =
+          this.zoomVideoService.createSharescreenContainer(
+            sharescreenVideo,
+            userId || 0
+          );
+
+        this.sharescreenContainerElement?.nativeElement.appendChild(
+          sharescreenContainer
+        );
 
         await mediaStream.startShareScreen(sharescreenVideo, {
           controls: {},

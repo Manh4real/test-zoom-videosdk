@@ -14,7 +14,7 @@ video-player[node-id] {
 }
 
 video-player[node-id]::after {
-  content: attr(node-id);
+  content: attr(data-display-name);
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;

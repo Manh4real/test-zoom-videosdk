@@ -5,19 +5,21 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
-import { ZoomVideoService } from '../../services/zoom-video.service';
+import { CommonModule } from '@angular/common';
 import { combineLatestWith } from 'rxjs';
+
+import { ZoomVideoService } from '../../services/zoom-video.service';
 
 @Component({
   selector: 'app-camera',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './camera.component.html',
   styleUrl: './camera.component.scss',
   providers: [Document],
 })
 export class CameraComponent implements OnInit {
-  private zoomVideoService = inject(ZoomVideoService);
+  protected zoomVideoService = inject(ZoomVideoService);
 
   @ViewChild('camera') cameraElement?: ElementRef<HTMLVideoElement>;
   cameraStatus: 'idle' | 'starting' | 'started' | 'disabled' = 'idle';
@@ -26,7 +28,10 @@ export class CameraComponent implements OnInit {
     this.zoomVideoService.mediaStream$.subscribe(async (mediaStream) => {
       if (!mediaStream) return;
 
-      await mediaStream.startAudio();
+      await mediaStream.startAudio({
+        autoStartAudioInSafari: true,
+        backgroundNoiseSuppression: true,
+      });
 
       this.zoomVideoService.offMic$.next(true);
       this.zoomVideoService.offVideo$.next(false);
@@ -60,6 +65,13 @@ export class CameraComponent implements OnInit {
           videoElement?.setAttribute(
             'node-id',
             String(this.zoomVideoService.client?.getCurrentUserInfo().userId)
+          );
+
+          videoElement?.setAttribute(
+            'data-display-name',
+            String(
+              this.zoomVideoService.client?.getCurrentUserInfo().displayName
+            )
           );
         }
       });
